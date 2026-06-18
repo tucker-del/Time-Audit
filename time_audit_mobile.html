@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Time Audit">
+<meta name="theme-color" content="#0f0f0f">
+<title>Time Audit</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface2: #242424;
+  --surface3: #2e2e2e;
+  --border: #2a2a2a;
+  --text: #f0f0f0;
+  --text-dim: #888;
+  --text-muted: #444;
+  --accent: #f5a623;
+  --cat-ceo: #f5a623;
+  --cat-ops: #4caf50;
+  --cat-sales: #2196f3;
+  --cat-admin: #9c27b0;
+  --cat-personal: #ff7043;
+  --cat-dead: #555;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'SF Pro Text', sans-serif;
+  font-size: 15px;
+}
+
+/* ── LAYOUT SHELL ── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding-top: var(--safe-top);
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+  flex-shrink: 0;
+  background: var(--bg);
+}
+.topbar-title { font-size: 17px; font-weight: 700; color: var(--accent); letter-spacing: .04em; flex: 1; }
+.topbar-date { font-size: 12px; color: var(--text-dim); }
+.icon-btn {
+  width: 36px; height: 36px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-dim);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px; flex-shrink: 0;
+  transition: background .1s;
+}
+.icon-btn:active { background: var(--surface3); }
+
+/* ── PROGRESS STRIP ── */
+.progress-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.progress-label { font-size: 11px; color: var(--text-muted); letter-spacing: .06em; white-space: nowrap; }
+.progress-track { flex: 1; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s; }
+.progress-pct { font-size: 11px; color: var(--text-dim); white-space: nowrap; min-width: 32px; text-align: right; }
+
+/* ── TAB BAR (bottom) ── */
+.tabbar {
+  display: flex;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+  padding-bottom: var(--safe-bottom);
+}
+.tabbar-btn {
+  flex: 1;
+  padding: 10px 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: color .15s;
+}
+.tabbar-btn .tb-icon { font-size: 20px; }
+.tabbar-btn.active { color: var(--accent); }
+
+/* ── PANELS ── */
+.panels { flex: 1; overflow: hidden; position: relative; }
+.panel { display: none; position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.panel.active { display: block; }
+
+/* ── LOG PANEL ── */
+.time-settings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.time-settings label { font-size: 11px; color: var(--text-muted); letter-spacing: .05em; }
+.time-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 5px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  border-radius: 6px;
+  outline: none;
+  width: 88px;
+}
+.time-input:focus { border-color: var(--accent); }
+.apply-btn {
+  margin-left: auto;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  cursor: pointer;
+}
+.apply-btn:active { opacity: .8; }
+
+/* TIME GRID */
+.grid-scroll { padding: 0; }
+.hour-block { border-bottom: 1px solid var(--border); }
+.hour-label-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 14px 2px;
+  background: var(--bg);
+}
+.hour-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: .04em;
+  min-width: 60px;
+}
+.quarter-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+.slot {
+  background: var(--surface2);
+  padding: 10px 12px;
+  min-height: 48px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background .08s;
+  active-transition: background .05s;
+}
+.slot:active { background: var(--surface3); }
+.slot-time { font-size: 11px; color: var(--text-muted); min-width: 34px; flex-shrink: 0; }
+.slot-content { flex: 1; overflow: hidden; }
+.slot-cat { font-size: 10px; letter-spacing: .08em; font-weight: 700; display: none; }
+.slot-note { font-size: 12px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slot.filled .slot-cat { display: block; }
+.slot.filled .slot-note { color: var(--text); }
+.slot.filled .slot-time { color: var(--text-dim); }
+
+.slot[data-cat="CEO"] { background: #1a1200; border-left: 3px solid var(--cat-ceo); }
+.slot[data-cat="CEO"] .slot-cat { color: var(--cat-ceo); }
+.slot[data-cat="OPS"] { background: #091209; border-left: 3px solid var(--cat-ops); }
+.slot[data-cat="OPS"] .slot-cat { color: var(--cat-ops); }
+.slot[data-cat="SALES"] { background: #09111a; border-left: 3px solid var(--cat-sales); }
+.slot[data-cat="SALES"] .slot-cat { color: var(--cat-sales); }
+.slot[data-cat="ADMIN"] { background: #120816; border-left: 3px solid var(--cat-admin); }
+.slot[data-cat="ADMIN"] .slot-cat { color: var(--cat-admin); }
+.slot[data-cat="PERSONAL"] { background: #1a0b06; border-left: 3px solid var(--cat-personal); }
+.slot[data-cat="PERSONAL"] .slot-cat { color: var(--cat-personal); }
+.slot[data-cat="DEAD"] { background: #111; border-left: 3px solid var(--cat-dead); }
+.slot[data-cat="DEAD"] .slot-cat { color: var(--cat-dead); }
+
+/* ── LOG MODAL (bottom sheet) ── */
+.sheet-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  z-index: 200;
+  align-items: flex-end;
+}
+.sheet-overlay.open { display: flex; }
+.sheet {
+  background: var(--surface);
+  width: 100%;
+  border-radius: 18px 18px 0 0;
+  padding: 0 0 calc(16px + var(--safe-bottom));
+  border-top: 1px solid var(--border);
+  animation: slideUp .22s ease-out;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet-handle { width: 36px; height: 4px; background: var(--surface3); border-radius: 2px; margin: 12px auto 0; }
+.sheet-header { padding: 14px 18px 10px; border-bottom: 1px solid var(--border); }
+.sheet-time { font-size: 22px; font-weight: 700; color: var(--text); }
+.sheet-subtitle { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+/* CAT BUTTONS */
+.cat-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 14px 16px; }
+.cat-btn {
+  padding: 14px 6px;
+  border: 2px solid var(--border);
+  background: var(--surface2);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  transition: all .12s;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.cat-dot { width: 10px; height: 10px; border-radius: 50%; }
+.cat-btn[data-cat="CEO"] { color: var(--cat-ceo); }
+.cat-btn[data-cat="CEO"] .cat-dot { background: var(--cat-ceo); }
+.cat-btn[data-cat="OPS"] { color: var(--cat-ops); }
+.cat-btn[data-cat="OPS"] .cat-dot { background: var(--cat-ops); }
+.cat-btn[data-cat="SALES"] { color: var(--cat-sales); }
+.cat-btn[data-cat="SALES"] .cat-dot { background: var(--cat-sales); }
+.cat-btn[data-cat="ADMIN"] { color: var(--cat-admin); }
+.cat-btn[data-cat="ADMIN"] .cat-dot { background: var(--cat-admin); }
+.cat-btn[data-cat="PERSONAL"] { color: var(--cat-personal); }
+.cat-btn[data-cat="PERSONAL"] .cat-dot { background: var(--cat-personal); }
+.cat-btn[data-cat="DEAD"] { color: var(--cat-dead); }
+.cat-btn[data-cat="DEAD"] .cat-dot { background: var(--cat-dead); }
+.cat-btn.active { border-color: currentColor; background: var(--surface3); transform: scale(1.03); }
+.cat-btn:active { transform: scale(.97); }
+
+.note-section { padding: 0 16px 12px; }
+.note-label { font-size: 11px; color: var(--text-muted); letter-spacing: .06em; margin-bottom: 7px; }
+.note-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  padding: 12px 14px;
+  outline: none;
+}
+.note-input:focus { border-color: var(--accent); }
+.note-input::placeholder { color: var(--text-muted); }
+
+.sheet-actions { display: flex; gap: 8px; padding: 4px 16px 0; }
+.btn-save {
+  flex: 1; background: var(--accent); color: #000; border: none;
+  border-radius: 10px; padding: 15px; font-family: inherit;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.btn-save:active { opacity: .85; }
+.btn-secondary {
+  background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border);
+  border-radius: 10px; padding: 15px 18px; font-family: inherit;
+  font-size: 13px; cursor: pointer;
+}
+.btn-secondary:active { background: var(--surface3); }
+.btn-danger {
+  background: transparent; color: #e53935; border: 1px solid #e53935;
+  border-radius: 10px; padding: 15px 16px; font-family: inherit;
+  font-size: 13px; cursor: pointer;
+}
+.btn-danger:active { background: #1a0909; }
+
+/* ── ANALYSIS PANEL ── */
+.analysis-panel { padding: 14px 14px calc(14px + var(--safe-bottom)); }
+.info-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.info-card strong { color: var(--accent); }
+.a-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+.a-card h4 { font-size: 10px; color: var(--text-muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+.bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.bar-label { font-size: 11px; width: 62px; text-align: right; flex-shrink: 0; }
+.bar-track { flex: 1; height: 16px; background: var(--surface3); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; }
+.bar-val { font-size: 11px; color: var(--text-dim); min-width: 28px; text-align: right; }
+.verdict-item { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
+.verdict-icon { font-size: 18px; flex-shrink: 0; }
+.verdict-text { font-size: 12px; color: var(--text-dim); line-height: 1.55; }
+.outsource-row { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.outsource-row:last-child { border-bottom: none; }
+.outsource-time { font-size: 11px; color: var(--text-muted); min-width: 60px; flex-shrink: 0; padding-top: 1px; }
+.outsource-note { font-size: 12px; color: var(--text-dim); }
+
+/* ── GUIDE PANEL ── */
+.guide-panel { padding: 14px 14px calc(14px + var(--safe-bottom)); }
+.guide-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+.guide-section h4 { font-size: 10px; color: var(--text-muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+.guide-cat-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+.guide-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+.guide-q { display: flex; gap: 8px; margin-bottom: 10px; font-size: 12px; color: var(--text-dim); line-height: 1.55; }
+.guide-qnum { color: var(--accent); font-weight: 700; flex-shrink: 0; min-width: 16px; }
+
+/* Export */
+.export-row { padding: 12px 14px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; background: var(--bg); }
+.export-btn-full {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text-dim); font-family: inherit;
+  font-size: 12px; padding: 10px; letter-spacing: .06em; text-transform: uppercase; cursor: pointer;
+}
+.export-btn-full:active { background: var(--surface3); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 0; }
+
+/* Today indicator */
+.today-badge {
+  font-size: 10px; background: var(--accent); color: #000;
+  border-radius: 4px; padding: 1px 6px; font-weight: 700;
+  letter-spacing: .04em; flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-title">TIME AUDIT</div>
+    <div class="topbar-date" id="topDate"></div>
+    <span class="today-badge" id="todayBadge" style="display:none">TODAY</span>
+    <button class="icon-btn" id="prevDay" title="Previous day">‹</button>
+    <button class="icon-btn" id="nextDay" title="Next day">›</button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-strip">
+    <span class="progress-label">LOGGED</span>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <span class="progress-pct" id="progressPct">0%</span>
+  </div>
+
+  <!-- PANELS -->
+  <div class="panels">
+
+    <!-- LOG -->
+    <div class="panel active" id="panel-log">
+      <div class="time-settings">
+        <label>START</label>
+        <input type="time" class="time-input" id="startTime" value="05:00">
+        <label>END</label>
+        <input type="time" class="time-input" id="endTime" value="21:00">
+        <button class="apply-btn" id="applyBtn">SET</button>
+      </div>
+      <div class="grid-scroll" id="gridScroll"></div>
+    </div>
+
+    <!-- ANALYSIS -->
+    <div class="panel" id="panel-analysis">
+      <div class="analysis-panel" id="analysisContent"></div>
+    </div>
+
+    <!-- GUIDE -->
+    <div class="panel" id="panel-guide">
+      <div class="guide-panel">
+        <div class="info-card"><strong>HOW TO USE — under 5 min/day</strong><br>Set your hours once. Tap any block throughout the day, pick a category, type 3 words, hit SAVE. Log in real-time or fill gaps at lunch and end of day.</div>
+
+        <div class="guide-section">
+          <h4>CATEGORIES</h4>
+          <div class="guide-cat-row"><div class="guide-dot" style="background:var(--cat-ceo)"></div><span><strong style="color:var(--cat-ceo)">CEO</strong> — Strategy, decisions, partnerships. Only things you can do.</span></div>
+          <div class="guide-cat-row"><div class="guide-dot" style="background:var(--cat-sales)"></div><span><strong style="color:var(--cat-sales)">SALES</strong> — FB Marketplace, GHL follow-up, outbound calls, closing.</span></div>
+          <div class="guide-cat-row"><div class="guide-dot" style="background:var(--cat-ops)"></div><span><strong style="color:var(--cat-ops)">OPS</strong> — Deliveries, yard work, vendor calls, logistics.</span></div>
+          <div class="guide-cat-row"><div class="guide-dot" style="background:var(--cat-admin)"></div><span><strong style="color:var(--cat-admin)">ADMIN</strong> — QBO, invoices, email, scheduling. VA territory.</span></div>
+          <div class="guide-cat-row"><div class="guide-dot" style="background:var(--cat-personal)"></div><span><strong style="color:var(--cat-personal)">PERSONAL</strong> — Meals, family, exercise. Non-negotiable.</span></div>
+          <div class="guide-cat-row"><div class="guide-dot" style="background:var(--cat-dead)"></div><span><strong style="color:var(--cat-dead)">DEAD</strong> — Scrolling, distracted, reactive. The number to kill.</span></div>
+        </div>
+
+        <div class="guide-section">
+          <h4>HORMOZI'S 5 QUESTIONS — ASK FOR EVERY BLOCK</h4>
+          <div class="guide-q"><span class="guide-qnum">1.</span><span>Can someone else do this? → Outsource it.</span></div>
+          <div class="guide-q"><span class="guide-qnum">2.</span><span>Does this directly make money? → If no, justify it or cut it.</span></div>
+          <div class="guide-q"><span class="guide-qnum">3.</span><span>Is this my highest-leverage use of time? → If no, stop.</span></div>
+          <div class="guide-q"><span class="guide-qnum">4.</span><span>Am I reacting or executing? → Reactive = DEAD time.</span></div>
+          <div class="guide-q"><span class="guide-qnum">5.</span><span>Would I pay $100/hr for this? → That's your CEO floor.</span></div>
+        </div>
+
+        <div class="guide-section">
+          <h4>TARGETS</h4>
+          <div class="guide-q"><span class="guide-qnum" style="color:var(--cat-ceo)">CEO</span><span>≥ 30% of working hours</span></div>
+          <div class="guide-q"><span class="guide-qnum" style="color:var(--cat-sales)">SALES</span><span>≥ 25% of working hours</span></div>
+          <div class="guide-q"><span class="guide-qnum" style="color:var(--cat-ops)">OPS</span><span>≤ 20% (until you have a driver)</span></div>
+          <div class="guide-q"><span class="guide-qnum" style="color:var(--cat-admin)">ADMIN</span><span>≤ 10% — VA should own this</span></div>
+          <div class="guide-q"><span class="guide-qnum" style="color:var(--cat-dead)">DEAD</span><span>Goal: zero</span></div>
+        </div>
+
+        <div class="guide-section" style="margin-bottom:0">
+          <h4>ADDING TO YOUR HOME SCREEN (iOS)</h4>
+          <div style="font-size:12px;color:var(--text-dim);line-height:1.7">
+            1. Open this page in <strong style="color:var(--text)">Safari</strong> (not Chrome)<br>
+            2. Tap the <strong style="color:var(--text)">Share</strong> button (box with arrow)<br>
+            3. Tap <strong style="color:var(--text)">"Add to Home Screen"</strong><br>
+            4. Name it "Time Audit" → Add<br>
+            It now opens full-screen like a native app.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- EXPORT ROW -->
+  <div class="export-row">
+    <button class="export-btn-full" id="exportBtn">EXPORT DAY (CSV)</button>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tabbar">
+    <button class="tabbar-btn active" data-tab="log">
+      <span class="tb-icon">📋</span>LOG
+    </button>
+    <button class="tabbar-btn" data-tab="analysis">
+      <span class="tb-icon">📊</span>AUDIT
+    </button>
+    <button class="tabbar-btn" data-tab="guide">
+      <span class="tb-icon">📖</span>GUIDE
+    </button>
+  </div>
+
+</div>
+
+<!-- BOTTOM SHEET MODAL -->
+<div class="sheet-overlay" id="sheetOverlay">
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-time" id="sheetTime"></div>
+      <div class="sheet-subtitle">Tap a category, add a note, save.</div>
+    </div>
+    <div class="cat-buttons" id="catButtons"></div>
+    <div class="note-section">
+      <div class="note-label">WHAT WERE YOU DOING?</div>
+      <input type="text" class="note-input" id="noteInput" placeholder="e.g. FB lead follow-up" maxlength="50" autocomplete="off" autocorrect="on">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-danger" id="btnClear">CLEAR</button>
+      <button class="btn-secondary" id="btnCancel">CANCEL</button>
+      <button class="btn-save" id="btnSave">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CATS = [
+  { key:'CEO',      color:'#f5a623' },
+  { key:'SALES',    color:'#2196f3' },
+  { key:'OPS',      color:'#4caf50' },
+  { key:'ADMIN',    color:'#9c27b0' },
+  { key:'PERSONAL', color:'#ff7043' },
+  { key:'DEAD',     color:'#555555' },
+];
+
+let currentDate = todayKey();
+let data = loadAll();
+let selectedSlot = null;
+let selectedCat = null;
+
+function todayKey() {
+  return new Date().toISOString().slice(0,10);
+}
+function loadAll() {
+  try { return JSON.parse(localStorage.getItem('trapp_timeaudit_v2') || '{}'); } catch { return {}; }
+}
+function saveAll() {
+  localStorage.setItem('trapp_timeaudit_v2', JSON.stringify(data));
+}
+function getDay() {
+  if (!data[currentDate]) data[currentDate] = { start:'05:00', end:'21:00', slots:{} };
+  return data[currentDate];
+}
+function timeToMins(t) {
+  const [h,m] = t.split(':').map(Number);
+  return h*60+m;
+}
+function minsToTime(m) {
+  return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+}
+function fmt12(t) {
+  let [h,m] = t.split(':').map(Number);
+  const ap = h>=12 ? 'PM':'AM';
+  h = h%12||12;
+  return `${h}:${String(m).padStart(2,'0')} ${ap}`;
+}
+function fmt12short(t) {
+  let [h,m] = t.split(':').map(Number);
+  const ap = h>=12?'PM':'AM';
+  h = h%12||12;
+  return m===0 ? `${h} ${ap}` : `${h}:${String(m).padStart(2,'0')}`;
+}
+function formatDate(key) {
+  const [y,mo,d] = key.split('-').map(Number);
+  return new Date(y,mo-1,d).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+}
+
+function buildGrid() {
+  const day = getDay();
+  const start = timeToMins(day.start||'05:00');
+  const end   = timeToMins(day.end  ||'21:00');
+  document.getElementById('startTime').value = day.start||'05:00';
+  document.getElementById('endTime').value   = day.end  ||'21:00';
+
+  const scroll = document.getElementById('gridScroll');
+  scroll.innerHTML = '';
+
+  for (let m = start; m < end; m += 60) {
+    const block = document.createElement('div');
+    block.className = 'hour-block';
+
+    const labelRow = document.createElement('div');
+    labelRow.className = 'hour-label-row';
+    const lbl = document.createElement('div');
+    lbl.className = 'hour-label';
+    lbl.textContent = fmt12short(minsToTime(m));
+    labelRow.appendChild(lbl);
+    block.appendChild(labelRow);
+
+    const qs = document.createElement('div');
+    qs.className = 'quarter-slots';
+
+    for (let q = 0; q < 4; q++) {
+      const sm = m + q*15;
+      if (sm >= end) continue;
+      const key = minsToTime(sm);
+      const sd = day.slots[key];
+
+      const slot = document.createElement('div');
+      slot.className = 'slot' + (sd ? ' filled':'');
+      slot.dataset.slot = key;
+      if (sd) slot.dataset.cat = sd.cat;
+
+      const timeEl = document.createElement('div');
+      timeEl.className = 'slot-time';
+      timeEl.textContent = `:${String(q*15).padStart(2,'0')}`;
+
+      const content = document.createElement('div');
+      content.className = 'slot-content';
+
+      const catEl = document.createElement('div');
+      catEl.className = 'slot-cat';
+      catEl.textContent = sd ? sd.cat : '';
+
+      const noteEl = document.createElement('div');
+      noteEl.className = 'slot-note';
+      noteEl.textContent = sd ? (sd.note || sd.cat) : 'tap to log';
+
+      content.appendChild(catEl);
+      content.appendChild(noteEl);
+      slot.appendChild(timeEl);
+      slot.appendChild(content);
+
+      slot.addEventListener('click', () => openSheet(key));
+      qs.appendChild(slot);
+    }
+    block.appendChild(qs);
+    scroll.appendChild(block);
+  }
+
+  updateProgress();
+  updateTopbar();
+}
+
+function updateProgress() {
+  const day = getDay();
+  const start = timeToMins(day.start||'05:00');
+  const end   = timeToMins(day.end  ||'21:00');
+  const total = Math.floor((end-start)/15);
+  const filled = Object.keys(day.slots).length;
+  const pct = total>0 ? Math.round((filled/total)*100) : 0;
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('progressPct').textContent = pct+'%';
+}
+
+function updateTopbar() {
+  document.getElementById('topDate').textContent = formatDate(currentDate);
+  const badge = document.getElementById('todayBadge');
+  badge.style.display = currentDate === todayKey() ? 'inline-block' : 'none';
+}
+
+// SHEET
+function openSheet(slotKey) {
+  selectedSlot = slotKey;
+  const day = getDay();
+  const ex = day.slots[slotKey];
+  selectedCat = ex ? ex.cat : null;
+
+  const endMin = timeToMins(slotKey)+15;
+  document.getElementById('sheetTime').textContent =
+    `${fmt12(slotKey)} – ${fmt12(minsToTime(Math.min(endMin, timeToMins(day.end||'21:00'))))}`;
+
+  document.getElementById('noteInput').value = ex ? (ex.note||'') : '';
+
+  const cb = document.getElementById('catButtons');
+  cb.innerHTML = '';
+  CATS.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn' + (selectedCat===c.key?' active':'');
+    btn.dataset.cat = c.key;
+    btn.innerHTML = `<div class="cat-dot"></div>${c.key}`;
+    btn.addEventListener('click', () => {
+      selectedCat = c.key;
+      cb.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    cb.appendChild(btn);
+  });
+
+  document.getElementById('sheetOverlay').classList.add('open');
+}
+
+function closeSheet() {
+  document.getElementById('sheetOverlay').classList.remove('open');
+  selectedSlot = null;
+  selectedCat = null;
+}
+
+document.getElementById('btnSave').addEventListener('click', () => {
+  if (!selectedSlot) return;
+  if (!selectedCat) {
+    const cb = document.getElementById('catButtons');
+    cb.style.outline = '1px solid red';
+    setTimeout(()=>cb.style.outline='',600);
+    return;
+  }
+  getDay().slots[selectedSlot] = {
+    cat: selectedCat,
+    note: document.getElementById('noteInput').value.trim()
+  };
+  saveAll();
+  closeSheet();
+  buildGrid();
+});
+
+document.getElementById('btnClear').addEventListener('click', () => {
+  if (!selectedSlot) return;
+  delete getDay().slots[selectedSlot];
+  saveAll();
+  closeSheet();
+  buildGrid();
+});
+
+document.getElementById('btnCancel').addEventListener('click', closeSheet);
+document.getElementById('sheetOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('sheetOverlay')) closeSheet();
+});
+
+// APPLY TIMES
+document.getElementById('applyBtn').addEventListener('click', () => {
+  getDay().start = document.getElementById('startTime').value;
+  getDay().end   = document.getElementById('endTime').value;
+  saveAll();
+  buildGrid();
+});
+
+// NAV
+document.getElementById('prevDay').addEventListener('click', () => {
+  const d = new Date(currentDate+'T00:00:00');
+  d.setDate(d.getDate()-1);
+  currentDate = d.toISOString().slice(0,10);
+  buildGrid();
+});
+document.getElementById('nextDay').addEventListener('click', () => {
+  const d = new Date(currentDate+'T00:00:00');
+  d.setDate(d.getDate()+1);
+  currentDate = d.toISOString().slice(0,10);
+  buildGrid();
+});
+
+// TABS
+document.querySelectorAll('.tabbar-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabbar-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab==='analysis') buildAnalysis();
+  });
+});
+
+// ANALYSIS
+function buildAnalysis() {
+  const day = getDay();
+  const start = timeToMins(day.start||'05:00');
+  const end   = timeToMins(day.end  ||'21:00');
+  const totalSlots = Math.floor((end-start)/15);
+  const filled = Object.values(day.slots);
+  const counts = {};
+  CATS.forEach(c => counts[c.key]=0);
+  filled.forEach(s => { if (counts[s.cat]!==undefined) counts[s.cat]++; });
+  const pct = totalSlots>0 ? Math.round((filled.length/totalSlots)*100):0;
+
+  let html = `<div class="info-card"><strong>${formatDate(currentDate)}</strong>  ${filled.length}/${totalSlots} blocks (${pct}%)  ·  ${filled.length*15} min tracked</div>`;
+
+  html += '<div class="a-card"><h4>TIME BY CATEGORY</h4>';
+  CATS.forEach(c => {
+    const hrs = ((counts[c.key]||0)*15/60).toFixed(1);
+    const p = totalSlots>0 ? Math.round((counts[c.key]/totalSlots)*100):0;
+    html += `<div class="bar-row">
+      <div class="bar-label" style="color:${c.color}">${c.key}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${c.color}"></div></div>
+      <div class="bar-val">${hrs}h</div>
+      <div class="bar-val">${p}%</div>
+    </div>`;
+  });
+  html += '</div>';
+
+  const verdicts = [];
+  const dh=(counts.DEAD||0)*15/60, sh=(counts.SALES||0)*15/60;
+  const ah=(counts.ADMIN||0)*15/60, ch=(counts.CEO||0)*15/60, oh=(counts.OPS||0)*15/60;
+
+  if (dh>1) verdicts.push({i:'🔴',t:`${dh.toFixed(1)}h DEAD. That's revenue left on the table. What was it? Eliminate or batch it.`});
+  else if (dh>0) verdicts.push({i:'🟡',t:`${(dh*60).toFixed(0)} min DEAD. Track the weekly pattern.`});
+  if (ah>1.5) verdicts.push({i:'🔴',t:`${ah.toFixed(1)}h ADMIN. A $15/hr VA owns this. Every hour here is an hour not selling.`});
+  if (sh<1&&filled.length>4) verdicts.push({i:'🔴',t:`Under 1hr SALES. GHL follow-ups, FB DMs, outbound — where did they go?`});
+  else if (sh>=2) verdicts.push({i:'🟢',t:`${sh.toFixed(1)}h SALES. Good. This is how Trapp grows.`});
+  if (ch>=2) verdicts.push({i:'🟢',t:`${ch.toFixed(1)}h CEO work. Building the business, not just running it.`});
+  else if (ch<1&&filled.length>4) verdicts.push({i:'🟡',t:`Low CEO time. Strategy needs protected blocks — not whatever's left over.`});
+  if (oh>3) verdicts.push({i:'🟡',t:`${oh.toFixed(1)}h OPS. First thing a second driver hire eliminates.`});
+  if (!verdicts.length&&filled.length>0) verdicts.push({i:'✅',t:'Solid day. Track the week to find real patterns.'});
+  if (!filled.length) verdicts.push({i:'⏳',t:'No blocks logged yet for this day.'});
+
+  html += '<div class="a-card"><h4>AUDIT VERDICT</h4>';
+  verdicts.forEach(v => {
+    html += `<div class="verdict-item"><span class="verdict-icon">${v.i}</span><span class="verdict-text">${v.t}</span></div>`;
+  });
+  html += '</div>';
+
+  const adminBlocks = Object.entries(day.slots).filter(([,v])=>v.cat==='ADMIN');
+  if (adminBlocks.length) {
+    html += '<div class="a-card"><h4>VA OUTSOURCE CANDIDATES</h4>';
+    adminBlocks.forEach(([key,val]) => {
+      html += `<div class="outsource-row"><div class="outsource-time">${fmt12(key)}</div><div class="outsource-note">${val.note||'(no note)'}</div></div>`;
+    });
+    html += '</div>';
+  }
+
+  document.getElementById('analysisContent').innerHTML = html;
+}
+
+// EXPORT
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const day = getDay();
+  const start = timeToMins(day.start||'05:00');
+  const end   = timeToMins(day.end  ||'21:00');
+  let csv = 'Date,Time,Category,Note\n';
+  for (let m=start; m<end; m+=15) {
+    const key = minsToTime(m);
+    const s = day.slots[key];
+    csv += `${currentDate},${fmt12(key)},${s?s.cat:''},${s?(s.note||''):''}\n`;
+  }
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`time-audit-${currentDate}.csv`; a.click();
+  URL.revokeObjectURL(url);
+});
+
+// INIT
+buildGrid();
+</script>
+</body>
+</html>
